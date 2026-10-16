@@ -1,0 +1,6 @@
+On Windows, when ``CreateProcess`` fails while ``stdin``/``stdout``/``stderr``
+uses ``DEVNULL``, ``Popen`` no longer closes the ``_devnull`` file descriptor
+twice. Previously the Windows ``_execute_child`` path closed it in a ``finally``
+block but left ``_closed_child_pipe_fds`` false, so ``Popen.__init__``'s error
+handler closed it again and could close an unrelated fd opened by another
+greenlet. See :issue:`2217`.

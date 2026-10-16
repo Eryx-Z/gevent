@@ -1332,6 +1332,10 @@ class Popen(object):
                 _close(errwrite)
                 if hasattr(self, '_devnull'):
                     os_close(self._devnull)
+                # Match CPython's _close_pipe_fds: mark closed so __init__'s
+                # except path does not close these fds a second time when
+                # CreateProcess fails (issue #2217).
+                self._closed_child_pipe_fds = True
 
             # Retain the process handle, but close the thread handle
             self._child_created = True

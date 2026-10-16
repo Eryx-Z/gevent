@@ -566,5 +566,37 @@ class RunFuncTestCase(greentest.TestCase):
                 subprocess.run('sleep 3', shell=True, timeout=0.1,
                                capture_output=True)  # New session unspecified.
 
+
+@greentest.skipUnless(subprocess.mswindows,
+                      "CreateProcess / DEVNULL double-close is Windows-specific")
+class TestWindowsDevnullDoubleClose(greentest.TestCase):
+    """Regression for issue #2217."""
+
+    error_fatal = False
+
+    def test_failed_createprocess_with_devnull_does_not_corrupt_fds(self):
+        # CreateProcess fails (executable missing). DEVNULL opens _devnull;
+        # Windows _execute_child closes it in finally and must set
+        # _closed_child_pipe_fds so __init__ does not close it a second time
+        # (which could close an unrelated fd another greenlet just obtained).
+        with self.assertRaises(OSError):
+            subprocess.Popen(
+                ['gevent-no-such-executable-2217'],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+        files = []
+        try:
+            for _ in range(32):
+                files.append(open(__file__, 'rb'))
+                files[-1].read(1)
+        finally:
+            for f in files:
+                f.close()
+
+
+
 if __name__ == '__main__':
     greentest.main()
